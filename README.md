@@ -17,7 +17,7 @@ Embedding image descriptors (Kate, Aaron)
 - create MyNN model (input: descriptor of img --> output: image embedding)
 - extract triple (image ID, caption ID, confuser image ID)
 - get margin ranking loss (ourgrad) + accuracy
-- retrain model
+- train model
   - get caption embedding
   - embed true image + confuser image
   - compute similarities
