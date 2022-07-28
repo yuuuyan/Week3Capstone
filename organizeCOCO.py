@@ -2,6 +2,10 @@ from cogworks_data.language import get_data_path
 from pathlib import Path
 from collections import defaultdict
 import json
+import re, string
+
+def strip_punc(corpus):
+    return punc_regex.sub('', corpus)
 
 class COCO:
 
@@ -21,7 +25,7 @@ class COCO:
 
         # Creating the Image --> List of Captions dictionary
 
-        self.image_to_caps = defaultdict([])
+        self.image_to_caps = defaultdict(list)
 
         for caption in self.data["annotations"]:
             self.image_to_caps[caption["image_id"]].append(caption["id"])
@@ -31,7 +35,7 @@ class COCO:
         self.cap_to_image = defaultdict(None)
 
         for caption in self.data["annotations"]:
-            self.image_to_cap[caption["id"]] = caption["image_id"]
+            self.cap_to_image[caption["id"]] = caption["image_id"]
 
         # Creating the Caption --> Actual Caption dictionary
 
@@ -45,7 +49,7 @@ class COCO:
         self.vocab = []
 
         for caption in self.data["annotations"]:
-            text = caption["caption"].split()
+            text = (strip_punc(caption["caption"])).lower().split()
             for word in text:
                 if word not in self.vocab:
                     self.vocab.append(word)

@@ -2,12 +2,15 @@
 #Need func to turn resnet from (512,) to (200,) 
 #Need idf func from embed_captions
 
+from embed_captions import embed
 import io
 
-
+from embed_images import w_embed
+from cogworks_data.language import get_data_path
+from pathlib import Path
 import requests
 from PIL import Image
-
+import numpy as np
 
 import pickle
 with Path(get_data_path('resnet18_features.pkl')).open('rb') as f:
@@ -41,9 +44,11 @@ def convert(img_desc):
     matrix = img_desc * w_embed(img_desc)
 
     return matrix 
-s
 
-    #img_ids : image id integer value used to get descriptor vector from resnet18
+
+
+def database(img_ids : np.ndarray):
+    #img_ids : image id integer values used to get descriptor vector from resnet18
 
     #Returns: (N, 512) array that matches image id to descriptor vector
 
@@ -60,15 +65,24 @@ s
     return arr
         
 
- tion
+def query(caption : str, all_embeds):
 
     #caption : string of the users query 
 
     #Returns: k most relevant images 
 
-    IDF(caption)
+    embed_vector = embed(caption)
 
-def display(k : np.ndarra):
+    k = np.dot(embed_vector, all_embeds)
+
+
+def display(k : np.ndarray):
     #k : images to be displayed 
+    
+    #Returns nothing, displays images from k
 
-def query(cap_emb):
+    for i in k:
+        download_image(i["coco_url"]) #should work
+
+
+

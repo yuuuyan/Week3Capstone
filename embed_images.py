@@ -12,14 +12,13 @@ from cogworks_data.language import get_data_path
 from pathlib import Path
 from mygrad.nnet.initializers import glorot_normal
 from mynn.layers.dense import dense
-from mynn.losses import 
 from mynn.optimizers.sgd import SGD
 from mynn.optimizers.adam import Adam
 import pickle
 
 with Path(get_data_path('resnet18_features.pkl')).open('rb') as f:
     resnet18_features = pickle.load(f)
-
+``
 class Model:
     def __init__(self):
         """ Initializes layers in  model, and sets them
@@ -36,12 +35,12 @@ class Model:
         
         Parameters
         ----------
-        x : Union[numpy.ndarray, mygrad.Tensor], shape=(512,)
-            A single image descriptor vector
+        x : Union[numpy.ndarray, mygrad.Tensor], shape=(N, 512)
+            An array of image descriptor vectors
         Returns
         -------
         mygrad.Tensor, shape=(200,)
-            The model's embedded image vector
+            The model's embedded image vectors
         '''
 
         w = self.w_embed(x) # (1, 200) vector
@@ -97,11 +96,26 @@ def train_model():
 
         for batch_cnt in range(0, len(train_idxs)//batch_size):
             ids = train_idxs[batch_cnt * batch_size:(batch_cnt + 1) * batch_size]# get batch of indices
-            batch = coco_data.data["id"][ids] # get random sample of images from COCO data
+            batch = [coco_data.data["images"][i]["id"] for i in ids] # get random sample of images from COCO data
             
+            conf_ids = [coco_data.data["id"][random.randint(0, len_coco)] for i in range(batch_size)]
+
+            true_desc = resnet18_features[batch]
+            conf_desc = resnet18_features[conf_ids]
+
+            all_captions = coco_data.I_To_C[batch]
+            caption = all_captions[random.randint(0, len(all_captions))] # randomly selects a caption for the true image
+
+            true_embed = model(true_desc)
+            conf_embed = model(conf_desc)
+            caption_embed = ec.embed(caption)
+
+            # TODO : values in sim_true and sim_conf need to be cosine distance-d
             sim_true = []
             sim_conf = []
 
+            
+            '''
             for true_id in batch:
                 conf_id = coco_data.data["id"][random.randint(0, len_coco)]
 
@@ -117,13 +131,17 @@ def train_model():
                 
                 sim_true.append(true_embed @ caption_embed)
                 sim_conf.append(conf_embed @ caption_embed)
+            '''
             
             # margin_ranking_loss(x1, x2, y, margin) equivalent to mg.mean(mg.maximum(0, margin - y * (x1 - x2)))
-            sim_true = np.array(sim_true)
-            sim_conf = np.array(sim_conf)
+            # sim_true = np.array(sim_true)
+            sim_true = mg.einsum("nd, nd -> n", caption_embed, true_embed)
+            #sim_conf = np.array(sim_conf)
+            sim_conf = mg.einsum("nd, nd -> n", caption_embed, conf_embed)
             loss = margin_ranking_loss(sim_true, sim_conf, y=1, margin=0.25)
             loss.backward()
             optim.step()
+
     return model
 
                 
