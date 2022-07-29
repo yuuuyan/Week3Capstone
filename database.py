@@ -12,6 +12,8 @@ from PIL import Image
 import numpy as np
 import embed_images 
 
+import matplotlib.pyplot as plt
+
 import pickle
 with Path(get_data_path('resnet18_features.pkl')).open('rb') as f:
     resnet18_features = pickle.load(f)
@@ -85,10 +87,11 @@ def display(matches : np.ndarray, k : int, img_ids : np.ndarray):
     
     #Returns nothing, displays images from k
     
+    images = []
 
     for i in range(k):
-        download_image(img_ids[matches[i]]["coco_url"])
+        images.append(download_image(img_ids[matches[i]]["coco_url"]))
 
-    fig, ax = plt.subplots (100, 100, figsize = (12,6))
+    fig, ax = plt.subplots(5, 5, figsize = (12,6))
 
-    ax.imshow(img)
+    ax.imshow(images)
