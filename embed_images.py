@@ -18,7 +18,7 @@ import pickle
 
 with Path(get_data_path('resnet18_features.pkl')).open('rb') as f:
     resnet18_features = pickle.load(f)
-``
+
 class Model:
     def __init__(self):
         """ Initializes layers in  model, and sets them
@@ -87,6 +87,53 @@ def train_model():
     
     len_coco = 82612
     coco_data = oc.COCO()
+
+    for epoch_cnt in range(num_epochs):
+        # Use np.random.shuffle(idxs) to shuffle the indices in-place 
+        train_idxs = np.arange(0, len_coco // 5 * 4)# create array of N indices - one for each datum in the dataset
+        test_idxs = np.arange(len_coco // 5 * 4)
+        np.random.shuffle(train_idxs)
+        np.random.shuffle(test_idxs)
+
+        for batch_cnt in range(0, len(train_idxs)//batch_size):
+            ids = train_idxs[batch_cnt * batch_size:(batch_cnt + 1) * batch_size] # get batch of indices
+            batch = [coco_data.data["images"][i]["id"] for i in ids] # get random sample of images from COCO data
+
+            conf_ids = [coco_data.data["images"][random.randint(0, len_coco)]["id"] for i in range(batch_size)]
+            
+            true_desc = []
+            conf_desc = []
+            caption = []
+            
+            for i in range(batch_size):
+                if batch[i] in resnet18_features and conf_ids[i] in resnet18_features and batch[i] in :
+                    true_desc.append(resnet18_features[batch[i]])
+                    conf_desc.append(resnet18_features[conf_ids[i]])
+                    
+                    # all_captions = [coco_data.I_To_C(i) for i in batch]
+                    print(batch[i])
+                    caption.append(coco_data.rand_cap(batch[i]))
+
+            # true_desc = true_desc[~np.all(true_desc == 0, axis=0)]
+            print(true_desc[:50])
+            
+            true_embed = model(np.array(true_desc))
+            conf_embed = model(np.array(conf_desc))
+            
+            caption_embed = np.array([ec.embed(c) for c in caption])
+
+            # margin_ranking_loss(x1, x2, y, margin) equivalent to mg.mean(mg.maximum(0, margin - y * (x1 - x2)))
+            sim_true = mg.einsum("nd, nd -> n", caption_embed, true_embed)
+            sim_conf = mg.einsum("nd, nd -> n", caption_embed, conf_embed)
+            loss = margin_ranking_loss(sim_true, sim_conf, y=1, margin=0.25)
+            
+            loss.backward()
+            optim.step()
+            
+            accuracy = np.mean(sim_true.data > sim_conf.data)
+        
+
+    ''''''
     for epoch_cnt in range(num_epochs):
         # Use np.random.shuffle(idxs) to shuffle the indices in-place 
         train_idxs = np.arange(0, len_coco // 5 * 4)# create array of N indices - one for each datum in the dataset
@@ -100,8 +147,8 @@ def train_model():
             
             conf_ids = [coco_data.data["id"][random.randint(0, len_coco)] for i in range(batch_size)]
 
-            true_desc = resnet18_features[batch]
-            conf_desc = resnet18_features[conf_ids]
+            true_desc = [resnet18_features[i] for i in batch]
+            conf_desc = [resnet18_features[i] for i in conf_ids]
 
             all_captions = coco_data.I_To_C[batch]
             caption = all_captions[random.randint(0, len(all_captions))] # randomly selects a caption for the true image
@@ -115,7 +162,7 @@ def train_model():
             sim_conf = []
 
             
-            '''
+            """"""
             for true_id in batch:
                 conf_id = coco_data.data["id"][random.randint(0, len_coco)]
 
@@ -131,7 +178,7 @@ def train_model():
                 
                 sim_true.append(true_embed @ caption_embed)
                 sim_conf.append(conf_embed @ caption_embed)
-            '''
+            """"""
             
             # margin_ranking_loss(x1, x2, y, margin) equivalent to mg.mean(mg.maximum(0, margin - y * (x1 - x2)))
             # sim_true = np.array(sim_true)
@@ -143,5 +190,6 @@ def train_model():
             optim.step()
 
     return model
+    ''''''
 
                 

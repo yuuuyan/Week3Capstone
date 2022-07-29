@@ -4,18 +4,19 @@
 
 from embed_captions import embed
 import io
-
-from embed_images import w_embed
+import embed_images as ei
 from cogworks_data.language import get_data_path
-from pathlib import Path
+from pathlib import Path 
 import requests
 from PIL import Image
 import numpy as np
+import embed_images 
 
 import pickle
 with Path(get_data_path('resnet18_features.pkl')).open('rb') as f:
     resnet18_features = pickle.load(f)
 
+ 
 
 def download_image(img_url: str) -> Image:
     """Fetches an image from the web.
@@ -35,54 +36,67 @@ def download_image(img_url: str) -> Image:
 
 
 
-#takes in N image_ids to image embeddings (from resnet)
-
-def convert(img_desc):
-    #img_desc : image descriptor vector with a shape of (512,)
-    #w_embed : temporary name for embed function
-
-    matrix = img_desc * w_embed(img_desc)
-
-    return matrix 
-
-
-
-def database(img_ids : np.ndarray):
+def database(img_ids : np.ndarray, m : ei.Model):
     #img_ids : image id integer values used to get descriptor vector from resnet18
-
-    #Returns: (N, 512) array that matches image id to descriptor vector
+    #m : Model used to convert img_ids (512,) to to a corresponding embedding vector (200,)
+    #Returns: (img_id, embed) dictionary that matches image id to embedding vector
 
     N = len(img_ids)
 
-    arr = np.zeros(N, 512)
+    db = np.zeros(N, 200)
+
 
     
-    for i in range(N):
-        if img_ids[i] in resnet18_features: 
-            arr[i] = resnet18_features.get(img_ids[i])
+    for i in range(len(img_ids)):
+
+       if img_ids[i] in resnet18_features: 
+
+            db[i] = m(resnet18_features.get(img_ids[i]))
+
+       
+
+
+    #for i in range(N):
+    #    if img_ids[i] in resnet18_features: 
+    #       arr[i] = convert(resnet18_features.get(img_ids[i]))
 
     
-    return arr
+    return db
         
 
-def query(caption : str, all_embeds):
+
+def query(caption : str, all_embeds, img_ids : np.ndarray):
 
     #caption : string of the users query 
 
-    #Returns: k most relevant images 
+    #Returns: most relevant images 
 
     embed_vector = embed(caption)
 
     k = np.dot(embed_vector, all_embeds)
 
+    matches = np.argsort(k)[::-1]
 
-def display(k : np.ndarray):
+    return matches     m = np.argsort(k)      
+    
+    #index =matches : np.ndarray,  m[len[m] - 1], img_ids : np.ndarray
+
+    return m #img_ids[index]
+        
+
+    
+krange()k
+def display(caption : simg_ids[matches[i]]r, all_embeds, k : int, img_ids : np.ndarray):
     #k : images to be displayed 
     
     #Returns nothing, displays images from k
+    
+    m = query(caption, all_embeds)
 
-    for i in k:
-        download_image(i["coco_url"]) #should work
+    index = m[len[m] - 1]
+
+    for i  in range(k):
+        download_image(img_ids[index - i]["coco_url"]) #should work
 
 
 

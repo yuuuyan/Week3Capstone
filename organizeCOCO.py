@@ -3,8 +3,12 @@ from pathlib import Path
 from collections import defaultdict
 import json
 import re, string
+import random
+
+from numpy import empty
 
 def strip_punc(corpus):
+    punc_regex = re.compile("[{}]".format(re.escape(string.punctuation)))
     return punc_regex.sub('', corpus)
 
 class COCO:
@@ -25,10 +29,20 @@ class COCO:
 
         # Creating the Image --> List of Captions dictionary
 
-        self.image_to_caps = defaultdict(list)
+        self.image_to_caps = defaultdict(None)
 
         for caption in self.data["annotations"]:
             self.image_to_caps[caption["image_id"]].append(caption["id"])
+
+        #this will place each individual id into a list - might be just be better to do None
+        # like have the default value be none?
+        
+        # Creating the Image --> URLs dictionary
+
+        self.image_to_URLs = defaultdict(None)
+
+        for image in self.data["images"]:
+            self.image_to_URLs[image["id"]] = image["coco_url"]
 
         # Creating the Caption --> Image dictionary
 
@@ -56,7 +70,21 @@ class COCO:
                 else:
                     pass
 
+    
+    def getURL(self, image_id):
+        """
+        Returns the URL of an image given an Image ID
 
+        Parameters:
+        --------------------------------------------
+        image_id: int
+            The integer id of the image whose captions you wish to return
+        
+        Returns:
+        --------------------------------------------
+        URL: string
+            URL of corresponding image
+        """
 
     def I_To_C(self, image_id : int):
 
@@ -72,7 +100,6 @@ class COCO:
         --------------------------------------------
         List[int]
             List of corresponding caption ids as integers
-
         """
 
         return self.image_to_caps[image_id]
@@ -95,6 +122,27 @@ class COCO:
         """
 
         return self.cap_to_image[cap_id]
+
+    def rand_cap(self, image_id):
+        """
+        Returns a random caption for a given image
+
+        Returns:
+        --------------------------------------------
+        Caption: [str]
+            Random Caption for a given image  
+
+        """
+
+        caps = self.image_to_caps[image_id]
+        
+        print(len(caps))
+
+        if not caps:
+            return caps[random.randint(0, len(caps))]
+        else:
+            return ""
+
 
     def C_To_C(self, cap_id : int):
 

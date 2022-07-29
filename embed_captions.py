@@ -20,6 +20,7 @@ punc_regex = re.compile("[{}]".format(re.escape(string.punctuation)))
 coco_temp = COCO()
  
 def strip_punc(corpus):
+    print(punc_regex.sub('', corpus))
     return punc_regex.sub('', corpus)
 
 def process_text(text):
@@ -59,6 +60,7 @@ def compute_idf(captions):
         dict_of_idfs[word]=np.log10(N / nt)
 
     return dict_of_idfs
+
     
 filename = "glove.6B.200d.txt.w2v"
 glove = KeyedVectors.load_word2vec_format(get_data_path(filename), binary=False)
