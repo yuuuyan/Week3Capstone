@@ -88,6 +88,9 @@ def train_model():
     len_coco = 82612
     coco_data = oc.COCO()
 
+    losses = []
+    loss_cnt = 0
+
     for epoch_cnt in range(num_epochs):
         # Use np.random.shuffle(idxs) to shuffle the indices in-place 
         train_idxs = np.arange(0, len_coco // 5 * 4)# create array of N indices - one for each datum in the dataset
@@ -103,37 +106,71 @@ def train_model():
             
             true_desc = []
             conf_desc = []
-            caption = []
+            captions = []
             
             for i in range(batch_size):
-                if batch[i] in resnet18_features and conf_ids[i] in resnet18_features and batch[i] in :
+                if batch[i] in resnet18_features and conf_ids[i] in resnet18_features and batch[i] in coco_data.image_to_caps:
                     true_desc.append(resnet18_features[batch[i]])
                     conf_desc.append(resnet18_features[conf_ids[i]])
-                    
+
                     # all_captions = [coco_data.I_To_C(i) for i in batch]
-                    print(batch[i])
-                    caption.append(coco_data.rand_cap(batch[i]))
+                    captions.append(coco_data.rand_cap(batch[i]))
 
             # true_desc = true_desc[~np.all(true_desc == 0, axis=0)]
-            print(true_desc[:50])
-            
+
             true_embed = model(np.array(true_desc))
             conf_embed = model(np.array(conf_desc))
             
-            caption_embed = np.array([ec.embed(c) for c in caption])
+            
+            caption_embed = np.array([ec.embed(c) for c in captions])
+        
+            '''
+            for true_id in batch:
+                conf_id = coco_data.data["id"][random.randint(0, len_coco)]
+
+                true_desc = resnet18_features[true_id] 
+                conf_desc = resnet18_features[conf_id]
+
+                all_captions = coco_data.I_To_C[true_id]
+                caption = all_captions[random.randint(0, len(all_captions))]
+
+                true_embed = model(true_desc)
+                conf_embed = model(conf_desc)
+                caption_embed = ec.embed(caption)
+
+                sim_true.append(true_embed @ caption_embed)
+                sim_conf.append(conf_embed @ caption_embed)
+            '''
 
             # margin_ranking_loss(x1, x2, y, margin) equivalent to mg.mean(mg.maximum(0, margin - y * (x1 - x2)))
+            caption_embed = mg.tensor(caption_embed)
+            
+            true_embed = true_embed.reshape((true_embed.shape[0], 200))
+            conf_embed = conf_embed.reshape((conf_embed.shape[0], 200))
+
             sim_true = mg.einsum("nd, nd -> n", caption_embed, true_embed)
             sim_conf = mg.einsum("nd, nd -> n", caption_embed, conf_embed)
             loss = margin_ranking_loss(sim_true, sim_conf, y=1, margin=0.25)
+            
+            if loss_cnt % 100 == 0:
+                losses.append(loss)
             
             loss.backward()
             optim.step()
             
             accuracy = np.mean(sim_true.data > sim_conf.data)
+
+        """
+        with mg.no_autodiff:
+            prediction = model(iris)
+            truth = iris
+            loss = mean_squared_loss(prediction, truth)
+        print(f'epoch {epoch_cnt:5}, loss = {loss.item():0.3f}')
+        plotter.set_train_epoch()
+        """
         
 
-    ''''''
+    '''
     for epoch_cnt in range(num_epochs):
         # Use np.random.shuffle(idxs) to shuffle the indices in-place 
         train_idxs = np.arange(0, len_coco // 5 * 4)# create array of N indices - one for each datum in the dataset
@@ -190,6 +227,6 @@ def train_model():
             optim.step()
 
     return model
-    ''''''
+    '''
 
                 

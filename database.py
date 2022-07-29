@@ -65,7 +65,7 @@ def database(img_ids : np.ndarray, m : ei.Model):
         
 
 
-def query(caption : str, all_embeds, img_ids : np.ndarray):
+def query(caption : str, all_embeds : np.ndarray, img_ids : np.ndarray):
 
     #caption : string of the users query 
 
@@ -77,26 +77,18 @@ def query(caption : str, all_embeds, img_ids : np.ndarray):
 
     matches = np.argsort(k)[::-1]
 
-    return matches     m = np.argsort(k)      
+    return matches     
     
-    #index =matches : np.ndarray,  m[len[m] - 1], img_ids : np.ndarray
 
-    return m #img_ids[index]
-        
-
-    
-krange()k
-def display(caption : simg_ids[matches[i]]r, all_embeds, k : int, img_ids : np.ndarray):
+def display(matches : np.ndarray, k : int, img_ids : np.ndarray):
     #k : images to be displayed 
     
     #Returns nothing, displays images from k
     
-    m = query(caption, all_embeds)
 
-    index = m[len[m] - 1]
+    for i in range(k):
+        download_image(img_ids[matches[i]]["coco_url"])
 
-    for i  in range(k):
-        download_image(img_ids[index - i]["coco_url"]) #should work
+    fig, ax = plt.subplots (100, 100, figsize = (12,6))
 
-
-
+    ax.imshow(img)

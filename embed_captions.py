@@ -20,7 +20,6 @@ punc_regex = re.compile("[{}]".format(re.escape(string.punctuation)))
 coco_temp = COCO()
  
 def strip_punc(corpus):
-    print(punc_regex.sub('', corpus))
     return punc_regex.sub('', corpus)
 
 def process_text(text):
@@ -30,7 +29,7 @@ def process_text(text):
 
     lowercases, strips punctuation, tokenizes
     """
-    return (strip_punc(text)).lower().split()
+    return (strip_punc(text)).lower().split(" ")
 
 def get_captions(image_id):
     """
@@ -40,7 +39,6 @@ def get_captions(image_id):
     """
     return coco_temp.I_To_C(image_id)
 
-dict_of_idfs = {}
 def compute_idf(captions):
     """
     captions: list of strings representing all captions of an image
@@ -50,6 +48,8 @@ def compute_idf(captions):
     """
     #get vocab from coco class
     count = Counter(coco_temp.get_Vocab()) # Getting vocab from COCO class instance "coco_temp"
+    dict_of_idfs = {}
+
     for caption in captions:
         caption = process_text(caption)
         count.update(set(caption))
@@ -61,11 +61,34 @@ def compute_idf(captions):
 
     return dict_of_idfs
 
+def compute_idf_2(captions: dict):
+    """
+    captions: list of strings representing all captions of an image
+    goes through each caption in list of captions
+    computes idf for each word in the caption
+    returns word: idf dictionary
+    """
+    #get vocab from coco class
+    count = Counter() # Getting vocab from COCO class instance "coco_temp"
+    dict_of_idfs = {}
+
+    for caption in captions.values():
+        caption = process_text(caption)
+        count.update(caption)
+    
+    for word in count.keys():
+        N = len(captions)
+        nt = count[word]
+        dict_of_idfs[word]=np.log10(N / nt)
+
+    return dict_of_idfs
+
+
     
 filename = "glove.6B.200d.txt.w2v"
 glove = KeyedVectors.load_word2vec_format(get_data_path(filename), binary=False)
 
-def embed(text):
+def embed(text, idfs):
     """
     text: String representing individual caption/query
     goes through each word in caption
@@ -76,10 +99,10 @@ def embed(text):
     """
     word_embeddings = []
     for word in process_text(text):
-        if word not in dict_of_idfs or word not in glove:
+        if word not in idfs or word not in glove:
             word_embeddings.append(np.zeros(200,))
         else:
-            word_embeddings.append(dict_of_idfs[word]*glove[word])
+            word_embeddings.append(idfs[word]*glove[word])
     word_embeddings = np.array(sum(word_embeddings))
     
     return word_embeddings

@@ -2,8 +2,10 @@ from cogworks_data.language import get_data_path
 from pathlib import Path
 from collections import defaultdict
 import json
+import pickle
 import re, string
 import random
+import numpy as np
 
 from numpy import empty
 
@@ -22,53 +24,61 @@ class COCO:
 
         '''
 
+        # load Resnet Data
+
+        with Path(get_data_path('resnet18_features.pkl')).open('rb') as f:
+            resnet18_features = pickle.load(f)
+
         # load COCO metadata
+
         filename = get_data_path("captions_train2014.json")
         with Path(filename).open() as f:
             self.data = json.load(f)
 
         # Creating the Image --> List of Captions dictionary
 
-        self.image_to_caps = defaultdict(None)
+        self.image_to_caps = defaultdict(list)
 
         for caption in self.data["annotations"]:
-            self.image_to_caps[caption["image_id"]].append(caption["id"])
-
-        #this will place each individual id into a list - might be just be better to do None
-        # like have the default value be none?
+            if caption["image_id"] in resnet18_features:
+                self.image_to_caps[caption["image_id"]].append(caption["id"])
         
         # Creating the Image --> URLs dictionary
 
         self.image_to_URLs = defaultdict(None)
 
         for image in self.data["images"]:
-            self.image_to_URLs[image["id"]] = image["coco_url"]
+            if image["id"] in resnet18_features:
+                self.image_to_URLs[image["id"]] = image["coco_url"]
 
         # Creating the Caption --> Image dictionary
 
         self.cap_to_image = defaultdict(None)
 
         for caption in self.data["annotations"]:
-            self.cap_to_image[caption["id"]] = caption["image_id"]
+            if caption["image_id"] in resnet18_features:
+                self.cap_to_image[caption["id"]] = caption["image_id"]
 
         # Creating the Caption --> Actual Caption dictionary
 
         self.cap_to_cap = defaultdict(None)
 
         for caption in self.data["annotations"]:
-            self.cap_to_cap[caption["id"]] = caption["caption"]
+            if caption["image_id"] in resnet18_features:
+                self.cap_to_cap[caption["id"]] = caption["caption"]
 
         # Creating List of Unique Vocabulary
         
         self.vocab = []
 
         for caption in self.data["annotations"]:
-            text = (strip_punc(caption["caption"])).lower().split()
-            for word in text:
-                if word not in self.vocab:
-                    self.vocab.append(word)
-                else:
-                    pass
+            if caption["image_id"] in resnet18_features:
+                text = (strip_punc(caption["caption"])).lower().split()
+                for word in text:
+                    if word not in self.vocab:
+                        self.vocab.append(word)
+                    else:
+                        pass
 
     
     def getURL(self, image_id):
@@ -120,7 +130,6 @@ class COCO:
             Corresponding Image ID
 
         """
-
         return self.cap_to_image[cap_id]
 
     def rand_cap(self, image_id):
@@ -135,13 +144,11 @@ class COCO:
         """
 
         caps = self.image_to_caps[image_id]
-        
-        print(len(caps))
 
         if not caps:
-            return caps[random.randint(0, len(caps))]
-        else:
             return ""
+        
+        return self.C_To_C(caps[np.random.randint(0, len(caps))])
 
 
     def C_To_C(self, cap_id : int):
@@ -167,7 +174,7 @@ class COCO:
         """
         Returns a list of all vocab words used among all captions
         in the data set
-
+    
         Returns:
         --------------------------------------------
         Vocab: List[str]
@@ -176,6 +183,22 @@ class COCO:
         """
 
         return self.vocab
+    
+    def return_ids(self):
+        """
+        Returns a list of all Image ids as a numpy array
+
+        Returns:
+        --------------------------------------------
+        IDS: numpy.array[ints]
+            List of vocab words  
+
+        """
+
+        ID_list = list(self.image_to_caps.keys())
+        return np.array(ID_list)
+    
+    # def get_all_captions(self, ):
 
 
 
